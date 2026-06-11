@@ -28,7 +28,8 @@ export function verifyPassword(password: string, stored: string): boolean {
 
 // --- Cookie de sesión firmada ------------------------------------------------
 function sign(value: string): string {
-  const secret = process.env.SESSION_SECRET ?? "dev-secret";
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error("SESSION_SECRET no está definida");
   return createHmac("sha256", secret).update(value).digest("hex");
 }
 
