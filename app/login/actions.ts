@@ -21,14 +21,30 @@ export async function ingresar(
     return { error: "Completa usuario y contraseña." };
   }
 
-  const { data: user } = await supabaseAdmin()
-    .from("mundial_usuario")
-    .select("id, password")
-    .eq("username", username)
-    .maybeSingle();
+  let user: { id: number; password: string } | null = null;
+  try {
+    const { data, error } = await supabaseAdmin()
+      .from("mundial_usuario")
+      .select("id, password")
+      .eq("username", username)
+      .maybeSingle();
+    if (error) throw error;
+    user = data;
+  } catch {
+    return {
+      error: "No se pudo conectar con el servidor. Intenta de nuevo en un momento.",
+    };
+  }
 
-  if (!user || !verifyPassword(password, user.password)) {
-    return { error: "Usuario o contraseña incorrectos." };
+  // No existe la cuenta → hay que registrarse primero.
+  if (!user) {
+    return {
+      error: `La cuenta "${username}" no existe. Primero crea una cuenta en la pestaña "Crear cuenta".`,
+    };
+  }
+  // Existe pero la contraseña no coincide.
+  if (!verifyPassword(password, user.password)) {
+    return { error: "Contraseña incorrecta. Vuelve a intentarlo." };
   }
 
   await crearSesion(user.id);
@@ -53,33 +69,40 @@ export async function registrar(
     return { error: "Las contraseñas no coinciden." };
   }
 
-  const sb = supabaseAdmin();
+  let nuevoId: number;
+  try {
+    const sb = supabaseAdmin();
 
-  const { data: existe } = await sb
-    .from("mundial_usuario")
-    .select("id")
-    .eq("username", username)
-    .maybeSingle();
-  if (existe) {
-    return { error: "Ese usuario ya existe, elige otro." };
+    const { data: existe, error: e1 } = await sb
+      .from("mundial_usuario")
+      .select("id")
+      .eq("username", username)
+      .maybeSingle();
+    if (e1) throw e1;
+    if (existe) {
+      return { error: "Ese usuario ya existe. Elige otro o entra con tu cuenta." };
+    }
+
+    // El primer usuario registrado es admin (puede ver el panel de usuarios).
+    const { count, error: e2 } = await sb
+      .from("mundial_usuario")
+      .select("id", { count: "exact", head: true });
+    if (e2) throw e2;
+    const esAdmin = (count ?? 0) === 0;
+
+    const { data: nuevo, error: e3 } = await sb
+      .from("mundial_usuario")
+      .insert({ username, password: hashPassword(password), es_admin: esAdmin })
+      .select("id")
+      .single();
+    if (e3 || !nuevo) throw e3 ?? new Error("insert");
+    nuevoId = nuevo.id;
+  } catch {
+    return {
+      error: "No se pudo crear la cuenta (problema de conexión). Intenta de nuevo.",
+    };
   }
 
-  // El primer usuario registrado es admin (puede cargar resultados oficiales).
-  const { count } = await sb
-    .from("mundial_usuario")
-    .select("id", { count: "exact", head: true });
-  const esAdmin = (count ?? 0) === 0;
-
-  const { data: nuevo, error } = await sb
-    .from("mundial_usuario")
-    .insert({ username, password: hashPassword(password), es_admin: esAdmin })
-    .select("id")
-    .single();
-
-  if (error || !nuevo) {
-    return { error: "No se pudo crear el usuario. Intenta de nuevo." };
-  }
-
-  await crearSesion(nuevo.id);
+  await crearSesion(nuevoId);
   redirect("/grupos");
 }
