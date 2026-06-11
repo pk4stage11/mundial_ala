@@ -18,13 +18,15 @@ export default async function GruposPage() {
       <header className="mb-5">
         <h1 className="text-2xl font-bold text-ink">Fase de grupos</h1>
         <p className="text-muted text-sm mt-1">
-          Marca el resultado de cada partido: <b>1</b> gana el local, <b>X</b>{" "}
-          empate, <b>2</b> gana el visitante. Una vez jugado el partido queda
-          bloqueado y verás el <b>resultado real</b> al costado.
+          Marca cada partido: <b>1</b> local, <b>X</b> empate, <b>2</b>{" "}
+          visitante. Pulsa el <span className="text-win font-bold">✓</span> para{" "}
+          <b>cerrar la apuesta</b> (queda fija, ya no se puede cambiar). Al
+          jugarse el partido verás el <b>resultado real</b> al costado.
         </p>
       </header>
       <GruposEditor
         inicial={pred?.grupos ?? {}}
+        cerradosIniciales={pred?.gruposCerrados ?? []}
         real={real.grupos}
         marcadores={marcadores}
         ahoraMs={Date.now()}

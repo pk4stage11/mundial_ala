@@ -13,6 +13,7 @@ export type EliminatoriasData = Partial<Record<RondaKey, string[]>>;
 
 export type Prediccion = {
   grupos: GruposData;
+  gruposCerrados: string[]; // ids de partidos con la apuesta cerrada (no editable)
   terceros: string[]; // 8 mejores terceros elegidos
   eliminatorias: EliminatoriasData;
 };
@@ -179,6 +180,7 @@ export function calcularAciertos(
 
 export const PREDICCION_VACIA: Prediccion = {
   grupos: {},
+  gruposCerrados: [],
   terceros: [],
   eliminatorias: {},
 };

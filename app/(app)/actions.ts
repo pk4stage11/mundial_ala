@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cerrarSesion, usuarioActual } from "@/lib/auth";
 import {
+  getPrediccion,
   savePrediccion,
   eliminarUsuario as dbEliminarUsuario,
 } from "@/lib/db";
@@ -15,10 +16,25 @@ export async function logout() {
 }
 
 // ---- Predicción del usuario -------------------------------------------------
-export async function guardarGrupos(grupos: GruposData) {
+export async function guardarGrupos(data: {
+  grupos: GruposData;
+  gruposCerrados: string[];
+}) {
   const u = await usuarioActual();
   if (!u) return { ok: false, error: "Sesión expirada." };
-  await savePrediccion(u.id, { grupos });
+
+  // Protección server-side: nunca permitir cambiar un partido ya cerrado.
+  const actual = await getPrediccion(u.id);
+  const cerrados = new Set([...actual.gruposCerrados, ...data.gruposCerrados]);
+  const grupos = { ...data.grupos };
+  for (const id of actual.gruposCerrados) {
+    if (actual.grupos[id] !== undefined) grupos[id] = actual.grupos[id];
+  }
+
+  await savePrediccion(u.id, {
+    grupos,
+    gruposCerrados: [...cerrados],
+  });
   revalidatePath("/eliminatorias");
   revalidatePath("/tabla");
   return { ok: true };

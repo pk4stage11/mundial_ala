@@ -4,12 +4,14 @@ import { PREDICCION_VACIA, type Prediccion } from "./standings";
 
 function normaliza(row: {
   grupos?: unknown;
+  grupos_cerrados?: unknown;
   terceros?: unknown;
   eliminatorias?: unknown;
 } | null): Prediccion {
   if (!row) return structuredClone(PREDICCION_VACIA);
   return {
     grupos: (row.grupos as Prediccion["grupos"]) ?? {},
+    gruposCerrados: (row.grupos_cerrados as string[]) ?? [],
     terceros: (row.terceros as string[]) ?? [],
     eliminatorias: (row.eliminatorias as Prediccion["eliminatorias"]) ?? {},
   };
@@ -18,7 +20,7 @@ function normaliza(row: {
 export async function getPrediccion(usuarioId: number): Promise<Prediccion> {
   const { data } = await supabaseAdmin()
     .from("mundial_prediccion")
-    .select("grupos, terceros, eliminatorias")
+    .select("grupos, grupos_cerrados, terceros, eliminatorias")
     .eq("usuario_id", usuarioId)
     .maybeSingle();
   return normaliza(data);
@@ -36,6 +38,7 @@ export async function savePrediccion(
       {
         usuario_id: usuarioId,
         grupos: next.grupos,
+        grupos_cerrados: next.gruposCerrados,
         terceros: next.terceros,
         eliminatorias: next.eliminatorias,
         updated_at: new Date().toISOString(),
