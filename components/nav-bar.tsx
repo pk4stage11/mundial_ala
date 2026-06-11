@@ -30,7 +30,12 @@ export function NavBar({
       <div className="max-w-[1700px] mx-auto px-3 sm:px-6">
         <div className="flex items-center justify-between h-14">
           <Link href="/grupos" className="flex items-center gap-2 font-bold">
-            <span className="text-xl">🏆</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/trionda.png"
+              alt="Trionda"
+              className="w-7 h-7 rounded-full object-cover ring-1 ring-white/40"
+            />
             <span className="hidden sm:inline">Quiniela Mundial 2026</span>
             <span className="sm:hidden">Mundial 2026</span>
           </Link>
