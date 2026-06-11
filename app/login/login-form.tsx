@@ -98,7 +98,7 @@ export function LoginForm() {
       <p className="text-center text-xs text-muted mt-4">
         {modo === "login"
           ? "¿No tienes cuenta? Crea una arriba."
-          : "El primer usuario registrado será el administrador."}
+          : "Crea tu usuario y contraseña para participar."}
       </p>
     </div>
   );
