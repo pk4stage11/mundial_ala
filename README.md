@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏆 Quiniela Mundial 2026
 
-## Getting Started
+App web para predecir el Mundial 2026 (Canadá · México · EE.UU.) y competir por aciertos entre amigos.
 
-First, run the development server:
+## Qué hace
+
+- **Login / registro** con usuario + contraseña (el **primer** usuario registrado queda como **administrador**).
+- **Fase de grupos**: los 12 grupos reales con sus partidos. Para cada partido marcas `1` (gana local), `X` (empate) o `2` (gana visitante). La tabla de cada grupo se calcula sola (puntos, 1°/2°/3°).
+- **Eliminatorias** (dieciseisavos → octavos → cuartos → semifinal → final → campeón): arrastras (o tocas) los equipos que crees que pasan en cada ronda. Salen de tus clasificados de la fase de grupos: 1° y 2° de cada grupo + los 8 mejores terceros que tú elijas.
+- **Tabla de aciertos**: ranking de todos los participantes según cuántos resultados acertaron contra los resultados oficiales.
+- **Resultados (admin)**: el administrador carga lo que realmente pasó (mismos editores que el usuario) y con eso se calculan los aciertos.
+
+Todo se guarda solo en Supabase a medida que vas marcando.
+
+## Cómo correrlo
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install        # solo la primera vez
+npm run dev        # desarrollo -> http://localhost:3000
+npm run build && npm start   # producción
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Las claves de Supabase están en `.env.local`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Next.js 16 · React 19 · Tailwind CSS 4 · Supabase (Postgres). Autenticación propia
+simple (contraseña con hash scrypt + cookie de sesión firmada).
 
-## Learn More
+## Datos
 
-To learn more about Next.js, take a look at the following resources:
+Tablas en Supabase con prefijo `mundial_` (no tocan otros proyectos):
+`mundial_usuario`, `mundial_prediccion` (una fila por usuario), `mundial_resultado`
+(fila única con los resultados oficiales).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Los grupos y equipos están en `lib/data.ts`. El cálculo de tablas y aciertos en `lib/standings.ts`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Cómo se cuentan los aciertos
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Fase de grupos**: +1 por cada partido cuyo resultado (1/X/2) coincide con el oficial.
+- **Eliminatorias**: +1 por cada equipo que acertaste que llegaba a octavos, cuartos,
+  semifinal, final y campeón (se compara equipo por equipo en cada ronda).
