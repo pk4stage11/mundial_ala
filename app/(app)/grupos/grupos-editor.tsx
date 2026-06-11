@@ -172,9 +172,9 @@ export function GruposEditor({
                             }
                             className={`ml-0.5 w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-sm font-bold transition ${
                               cerrada
-                                ? "bg-win text-white"
+                                ? "bg-orange-500 text-white"
                                 : r && !jugado(p.id)
-                                  ? "border-2 border-win text-win hover:bg-green-50"
+                                  ? "border-2 border-orange-500 text-orange-500 hover:bg-orange-50"
                                   : "border-2 border-line text-slate-300 cursor-not-allowed"
                             }`}
                           >
@@ -198,7 +198,7 @@ export function GruposEditor({
                       <div className="flex items-center justify-between mt-1 text-[11px] gap-2">
                         <span className="text-muted flex items-center gap-1 min-w-0 truncate">
                           {cerrada ? (
-                            <span className="text-win font-medium">
+                            <span className="text-orange-600 font-medium">
                               ✓ apuesta cerrada
                             </span>
                           ) : jugado(p.id) ? (
