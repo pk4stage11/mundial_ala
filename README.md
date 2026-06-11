@@ -1,4 +1,4 @@
-# 🏆 Quiniela Mundial 2026
+# 🏆 La Polla Mundial 2026
 
 App web para predecir el Mundial 2026 (Canadá · México · EE.UU.) y competir por aciertos entre amigos.
 

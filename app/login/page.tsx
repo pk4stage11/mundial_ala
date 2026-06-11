@@ -15,7 +15,7 @@ export default async function LoginPage() {
             alt="Balón Trionda - Mundial 2026"
             className="w-24 h-24 mx-auto mb-3 rounded-full object-cover shadow-lg ring-2 ring-white/30"
           />
-          <h1 className="text-2xl font-bold leading-tight">Quiniela Mundial 2026</h1>
+          <h1 className="text-2xl font-bold leading-tight">La Polla Mundial 2026</h1>
           <p className="text-white/70 text-sm mt-1">
             Predice los partidos y compite por aciertos
           </p>

@@ -36,8 +36,8 @@ export function NavBar({
               alt="Trionda"
               className="w-7 h-7 rounded-full object-cover ring-1 ring-white/40"
             />
-            <span className="hidden sm:inline">Quiniela Mundial 2026</span>
-            <span className="sm:hidden">Mundial 2026</span>
+            <span className="hidden sm:inline">La Polla Mundial 2026</span>
+            <span className="sm:hidden">La Polla 2026</span>
           </Link>
           <div className="flex items-center gap-3">
             <span className="text-sm text-white/80 hidden sm:inline">

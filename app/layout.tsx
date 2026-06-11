@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Quiniela Mundial 2026",
+  title: "La Polla Mundial 2026",
   description:
     "Predice la fase de grupos y las eliminatorias del Mundial 2026 y compite por aciertos.",
 };
