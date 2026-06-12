@@ -8,11 +8,17 @@ import {
   type ResultadoPartido,
 } from "@/lib/data";
 import { FIXTURES, kickoffMs } from "@/lib/fixtures";
-import { tablaGrupo, type GruposData } from "@/lib/standings";
+import {
+  tablaGrupo,
+  puntosPartidoGrupos,
+  type GruposData,
+  type GolesData,
+} from "@/lib/standings";
 import { TeamLabel } from "@/components/team";
 
 type Guardar = (data: {
   grupos: GruposData;
+  gruposGoles: GolesData;
   gruposCerrados: string[];
 }) => Promise<{ ok: boolean; error?: string }>;
 type Marcadores = Record<string, string>;
@@ -29,6 +35,7 @@ function fechaCorta(id: string): string {
 
 export function GruposEditor({
   inicial,
+  golesIniciales,
   cerradosIniciales,
   real,
   marcadores,
@@ -36,6 +43,7 @@ export function GruposEditor({
   guardar,
 }: {
   inicial: GruposData;
+  golesIniciales: GolesData;
   cerradosIniciales: string[];
   real: GruposData;
   marcadores: Marcadores;
@@ -43,6 +51,7 @@ export function GruposEditor({
   guardar: Guardar;
 }) {
   const [grupos, setGrupos] = useState<GruposData>(inicial);
+  const [goles, setGoles] = useState<GolesData>(golesIniciales);
   const [cerrados, setCerrados] = useState<string[]>(cerradosIniciales);
   const [estado, setEstado] = useState<"idle" | "guardando" | "ok" | "error">(
     "idle",
@@ -58,35 +67,42 @@ export function GruposEditor({
     return jugado(id) || cerrados.includes(id);
   }
 
-  function persist(g: GruposData, c: string[]) {
+  function persist(g: GruposData, gl: GolesData, c: string[]) {
     setEstado("guardando");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       startTransition(async () => {
-        const res = await guardar({ grupos: g, gruposCerrados: c });
+        const res = await guardar({ grupos: g, gruposGoles: gl, gruposCerrados: c });
         setEstado(res.ok ? "ok" : "error");
       });
-    }, 400);
+    }, 450);
   }
 
   function setResultado(matchId: string, r: ResultadoPartido) {
     if (bloqueado(matchId)) return;
     const next = { ...grupos, [matchId]: r };
     setGrupos(next);
-    persist(next, cerrados);
+    persist(next, goles, cerrados);
+  }
+
+  function setGol(matchId: string, side: "l" | "v", raw: string) {
+    if (bloqueado(matchId)) return;
+    const v = raw === "" ? null : Math.max(0, Math.min(99, parseInt(raw, 10) || 0));
+    const cur = goles[matchId] ?? { l: null, v: null };
+    const next = { ...goles, [matchId]: { ...cur, [side]: v } };
+    setGoles(next);
+    persist(grupos, next, cerrados);
   }
 
   function cerrarApuesta(matchId: string) {
-    if (!grupos[matchId] || cerrados.includes(matchId) || jugado(matchId)) return;
-    if (
-      !confirm(
-        "¿Cerrar esta apuesta? Una vez cerrada NO podrás cambiarla.",
-      )
-    )
+    const g = goles[matchId];
+    const tieneAlgo = !!grupos[matchId] || (g && (g.l !== null || g.v !== null));
+    if (!tieneAlgo || cerrados.includes(matchId) || jugado(matchId)) return;
+    if (!confirm("¿Cerrar esta apuesta? Una vez cerrada NO podrás cambiarla."))
       return;
     const next = [...cerrados, matchId];
     setCerrados(next);
-    persist(grupos, next);
+    persist(grupos, goles, next);
   }
 
   const total = GRUPOS.length * 6;
@@ -114,13 +130,15 @@ export function GruposEditor({
               <div className="divide-y divide-line">
                 {PARTIDOS_POR_GRUPO[g.id].map((p) => {
                   const r = grupos[p.id];
+                  const gl = goles[p.id];
                   const rReal = real[p.id];
                   const marc = marcadores[p.id];
                   const cerrada = cerrados.includes(p.id);
                   const lock = bloqueado(p.id);
-                  const acierto = rReal ? r === rReal : null;
+                  const pts = puntosPartidoGrupos(r, gl, rReal, marc);
                   return (
                     <div key={p.id} className="px-2.5 py-2">
+                      {/* Fila 1: equipos + marcador (goles) + check */}
                       <div className="flex items-center gap-1.5">
                         <span
                           className={`flex-1 min-w-0 truncate text-right text-[13px] sm:text-sm ${
@@ -128,58 +146,39 @@ export function GruposEditor({
                           }`}
                         >
                           {equipo(p.local)?.name}{" "}
-                          <span className="text-base">
-                            {equipo(p.local)?.flag}
-                          </span>
+                          <span className="text-base">{equipo(p.local)?.flag}</span>
                         </span>
 
-                        <div className="flex items-center gap-0.5 no-select shrink-0">
-                          {(
-                            [
-                              ["LOCAL", "1"],
-                              ["EMPATE", "X"],
-                              ["VISITANTE", "2"],
-                            ] as [ResultadoPartido, string][]
-                          ).map(([val, lbl]) => (
-                            <button
-                              key={val}
-                              type="button"
-                              disabled={lock}
-                              onClick={() => setResultado(p.id, val)}
-                              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-md text-sm font-bold transition ${
-                                r === val
-                                  ? val === "EMPATE"
-                                    ? "bg-draw text-white"
-                                    : "bg-win text-white"
-                                  : "bg-slate-100 text-muted hover:bg-slate-200"
-                              } ${lock ? "opacity-50 cursor-not-allowed" : ""}`}
-                            >
-                              {lbl}
-                            </button>
-                          ))}
-
-                          {/* Check de confirmar / cerrar apuesta */}
-                          <button
-                            type="button"
-                            onClick={() => cerrarApuesta(p.id)}
-                            disabled={!r || cerrada || jugado(p.id)}
-                            title={
-                              cerrada
-                                ? "Apuesta cerrada"
-                                : !r
-                                  ? "Primero elige un resultado"
-                                  : "Cerrar apuesta (no podrás cambiarla)"
-                            }
-                            className={`ml-0.5 w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-sm font-bold transition ${
-                              cerrada
-                                ? "bg-orange-500 text-white"
-                                : r && !jugado(p.id)
-                                  ? "border-2 border-orange-500 text-orange-500 hover:bg-orange-50"
-                                  : "border-2 border-line text-slate-300 cursor-not-allowed"
+                        <div className="flex items-center gap-1 shrink-0">
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            max={99}
+                            disabled={lock}
+                            value={gl?.l ?? ""}
+                            onChange={(e) => setGol(p.id, "l", e.target.value)}
+                            placeholder="-"
+                            aria-label={`Goles ${equipo(p.local)?.name}`}
+                            className={`w-9 h-8 rounded-md border text-center text-sm font-bold outline-none focus:border-grass focus:ring-1 focus:ring-grass/30 ${
+                              lock ? "bg-slate-100 text-muted" : "border-line"
                             }`}
-                          >
-                            ✓
-                          </button>
+                          />
+                          <span className="text-muted text-xs">-</span>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            max={99}
+                            disabled={lock}
+                            value={gl?.v ?? ""}
+                            onChange={(e) => setGol(p.id, "v", e.target.value)}
+                            placeholder="-"
+                            aria-label={`Goles ${equipo(p.visitante)?.name}`}
+                            className={`w-9 h-8 rounded-md border text-center text-sm font-bold outline-none focus:border-grass focus:ring-1 focus:ring-grass/30 ${
+                              lock ? "bg-slate-100 text-muted" : "border-line"
+                            }`}
+                          />
                         </div>
 
                         <span
@@ -192,14 +191,62 @@ export function GruposEditor({
                           </span>{" "}
                           {equipo(p.visitante)?.name}
                         </span>
+
+                        {/* Check de cerrar apuesta — al costado, al final */}
+                        <button
+                          type="button"
+                          onClick={() => cerrarApuesta(p.id)}
+                          disabled={cerrada || jugado(p.id)}
+                          title={
+                            cerrada
+                              ? "Apuesta cerrada"
+                              : "Cerrar apuesta (no podrás cambiarla)"
+                          }
+                          className={`shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold transition ${
+                            cerrada
+                              ? "bg-orange-500 text-white"
+                              : !jugado(p.id)
+                                ? "border-2 border-orange-500 text-orange-500 hover:bg-orange-50"
+                                : "border-2 border-line text-slate-300 cursor-not-allowed"
+                          }`}
+                        >
+                          ✓
+                        </button>
                       </div>
 
-                      {/* Fecha + estado + resultado real */}
+                      {/* Fila 2: 1 X 2 (debajo del marcador) */}
+                      <div className="flex items-center justify-center gap-1 mt-1.5 no-select">
+                        {(
+                          [
+                            ["LOCAL", "1"],
+                            ["EMPATE", "X"],
+                            ["VISITANTE", "2"],
+                          ] as [ResultadoPartido, string][]
+                        ).map(([val, lbl]) => (
+                          <button
+                            key={val}
+                            type="button"
+                            disabled={lock}
+                            onClick={() => setResultado(p.id, val)}
+                            className={`w-9 h-7 rounded-md text-sm font-bold transition ${
+                              r === val
+                                ? val === "EMPATE"
+                                  ? "bg-draw text-white"
+                                  : "bg-win text-white"
+                                : "bg-slate-100 text-muted hover:bg-slate-200"
+                            } ${lock ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
+                            {lbl}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Fila 3: estado + resultado real + puntos */}
                       <div className="flex items-center justify-between mt-1 text-[11px] gap-2">
                         <span className="text-muted flex items-center gap-1 min-w-0 truncate">
                           {cerrada ? (
                             <span className="text-orange-600 font-medium">
-                              ✓ apuesta cerrada
+                              ✓ cerrada
                             </span>
                           ) : jugado(p.id) ? (
                             <span>🔒 {fechaCorta(p.id)}</span>
@@ -208,19 +255,27 @@ export function GruposEditor({
                           )}
                         </span>
                         {rReal && (
-                          <span
-                            className={`font-medium flex items-center gap-1 shrink-0 ${
-                              acierto ? "text-win" : "text-lose"
-                            }`}
-                          >
-                            {acierto ? "✓" : "✗"} Real:{" "}
-                            {marc
-                              ? marc
-                              : rReal === "LOCAL"
-                                ? `ganó ${equipo(p.local)?.flag}`
-                                : rReal === "VISITANTE"
-                                  ? `ganó ${equipo(p.visitante)?.flag}`
-                                  : "empate"}
+                          <span className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-ink font-medium">
+                              Real:{" "}
+                              {marc ??
+                                (rReal === "LOCAL"
+                                  ? "gana local"
+                                  : rReal === "VISITANTE"
+                                    ? "gana visita"
+                                    : "empate")}
+                            </span>
+                            <span
+                              className={`font-bold rounded px-1 ${
+                                pts.pts >= 3
+                                  ? "bg-green-100 text-win"
+                                  : pts.pts === 1
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-slate-100 text-muted"
+                              }`}
+                            >
+                              {pts.pts > 0 ? `+${pts.pts}` : "0"}
+                            </span>
                           </span>
                         )}
                       </div>
@@ -283,7 +338,7 @@ export function GruposEditor({
       {/* Barra de estado fija */}
       <div className="fixed bottom-0 inset-x-0 bg-white border-t border-line px-3 sm:px-4 py-2.5 flex items-center justify-between z-10 gap-2">
         <span className="text-xs sm:text-sm text-muted truncate">
-          {hechos}/{total} marcados · {cerradas} cerradas 🔒
+          {hechos}/{total} con 1/X/2 · {cerradas} cerradas 🔒
         </span>
         <span className="text-xs sm:text-sm font-medium shrink-0">
           {estado === "guardando" && (

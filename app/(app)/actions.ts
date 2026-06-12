@@ -8,7 +8,11 @@ import {
   savePrediccion,
   eliminarUsuario as dbEliminarUsuario,
 } from "@/lib/db";
-import type { EliminatoriasData, GruposData } from "@/lib/standings";
+import type {
+  EliminatoriasData,
+  GolesData,
+  GruposData,
+} from "@/lib/standings";
 
 export async function logout() {
   await cerrarSesion();
@@ -18,6 +22,7 @@ export async function logout() {
 // ---- Predicción del usuario -------------------------------------------------
 export async function guardarGrupos(data: {
   grupos: GruposData;
+  gruposGoles: GolesData;
   gruposCerrados: string[];
 }) {
   const u = await usuarioActual();
@@ -27,12 +32,16 @@ export async function guardarGrupos(data: {
   const actual = await getPrediccion(u.id);
   const cerrados = new Set([...actual.gruposCerrados, ...data.gruposCerrados]);
   const grupos = { ...data.grupos };
+  const gruposGoles = { ...data.gruposGoles };
   for (const id of actual.gruposCerrados) {
     if (actual.grupos[id] !== undefined) grupos[id] = actual.grupos[id];
+    if (actual.gruposGoles[id] !== undefined)
+      gruposGoles[id] = actual.gruposGoles[id];
   }
 
   await savePrediccion(u.id, {
     grupos,
+    gruposGoles,
     gruposCerrados: [...cerrados],
   });
   revalidatePath("/eliminatorias");

@@ -1,13 +1,18 @@
-import { getResultadoOficial, getTodasLasPredicciones } from "@/lib/db";
+import {
+  getResultadoOficial,
+  getTodasLasPredicciones,
+  getMarcadoresReales,
+} from "@/lib/db";
 import { usuarioActual } from "@/lib/auth";
 import { calcularAciertos, cantidadPartidosResueltos } from "@/lib/standings";
 
 export const dynamic = "force-dynamic";
 
 export default async function TablaPage() {
-  const [yo, oficial, todas] = await Promise.all([
+  const [yo, oficial, marcadores, todas] = await Promise.all([
     usuarioActual(),
     getResultadoOficial(),
+    getMarcadoresReales(),
     getTodasLasPredicciones(),
   ]);
 
@@ -18,7 +23,7 @@ export default async function TablaPage() {
   const ranking = todas
     .map((p) => ({
       usuario: p.usuario,
-      aciertos: calcularAciertos(p.prediccion, oficial),
+      aciertos: calcularAciertos(p.prediccion, oficial, marcadores),
     }))
     .sort((a, b) => b.aciertos.total - a.aciertos.total);
 
@@ -116,9 +121,10 @@ export default async function TablaPage() {
       </div>
 
       <p className="text-xs text-muted mt-3">
-        Cómo se cuentan los aciertos: cada partido de grupos con el mismo
-        resultado (1/X/2) suma 1; en eliminatorias suma 1 por cada equipo que
-        acertaste que llegaba a octavos, cuartos, semifinal, final y campeón.
+        Cómo se cuentan los puntos · <b>Fase de grupos:</b> +1 por acertar el
+        resultado (1/X/2) y +3 por el marcador exacto (se suman, hasta +4 por
+        partido). · <b>Eliminatorias:</b> +1 por cada equipo que acertaste que
+        llegaba a octavos, cuartos, semifinal, final y campeón.
       </p>
     </div>
   );

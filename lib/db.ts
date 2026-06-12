@@ -4,6 +4,7 @@ import { PREDICCION_VACIA, type Prediccion } from "./standings";
 
 function normaliza(row: {
   grupos?: unknown;
+  grupos_goles?: unknown;
   grupos_cerrados?: unknown;
   terceros?: unknown;
   eliminatorias?: unknown;
@@ -11,6 +12,7 @@ function normaliza(row: {
   if (!row) return structuredClone(PREDICCION_VACIA);
   return {
     grupos: (row.grupos as Prediccion["grupos"]) ?? {},
+    gruposGoles: (row.grupos_goles as Prediccion["gruposGoles"]) ?? {},
     gruposCerrados: (row.grupos_cerrados as string[]) ?? [],
     terceros: (row.terceros as string[]) ?? [],
     eliminatorias: (row.eliminatorias as Prediccion["eliminatorias"]) ?? {},
@@ -20,7 +22,7 @@ function normaliza(row: {
 export async function getPrediccion(usuarioId: number): Promise<Prediccion> {
   const { data } = await supabaseAdmin()
     .from("mundial_prediccion")
-    .select("grupos, grupos_cerrados, terceros, eliminatorias")
+    .select("grupos, grupos_goles, grupos_cerrados, terceros, eliminatorias")
     .eq("usuario_id", usuarioId)
     .maybeSingle();
   return normaliza(data);
@@ -38,6 +40,7 @@ export async function savePrediccion(
       {
         usuario_id: usuarioId,
         grupos: next.grupos,
+        grupos_goles: next.gruposGoles,
         grupos_cerrados: next.gruposCerrados,
         terceros: next.terceros,
         eliminatorias: next.eliminatorias,
@@ -168,7 +171,7 @@ export async function getTodasLasPredicciones(): Promise<PrediccionConUsuario[]>
     .order("id");
   const { data: preds } = await sb
     .from("mundial_prediccion")
-    .select("usuario_id, grupos, terceros, eliminatorias");
+    .select("usuario_id, grupos, grupos_goles, terceros, eliminatorias");
 
   const mapa = new Map<number, Prediccion>();
   (preds ?? []).forEach((p) => mapa.set(p.usuario_id as number, normaliza(p)));

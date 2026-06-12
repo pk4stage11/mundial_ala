@@ -11,12 +11,32 @@ export type GruposData = Record<string, ResultadoPartido>;
 
 export type EliminatoriasData = Partial<Record<RondaKey, string[]>>;
 
+// Goles que predice el usuario por partido: { "A-0": { l: 2, v: 1 } }
+export type Goles = { l: number | null; v: number | null };
+export type GolesData = Record<string, Goles>;
+
+// Marcadores reales por partido: { "A-0": "2-1" }
+export type Marcadores = Record<string, string>;
+
 export type Prediccion = {
   grupos: GruposData;
+  gruposGoles: GolesData; // marcador exacto que apuesta el usuario
   gruposCerrados: string[]; // ids de partidos con la apuesta cerrada (no editable)
   terceros: string[]; // 8 mejores terceros elegidos
   eliminatorias: EliminatoriasData;
 };
+
+// Parsea "2-1" -> {l:2, v:1}. Devuelve null si no es un marcador válido.
+export function parseMarcador(s: string | undefined): Goles | null {
+  if (!s) return null;
+  const m = s.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (!m) return null;
+  return { l: Number(m[1]), v: Number(m[2]) };
+}
+
+export function golesCompletos(g: Goles | undefined): g is { l: number; v: number } {
+  return !!g && typeof g.l === "number" && typeof g.v === "number";
+}
 
 export type Fila = {
   code: string;
@@ -136,8 +156,32 @@ export function fuenteRonda(
 }
 
 // --- Cálculo de aciertos contra el resultado oficial -------------------------
+export type PuntosPartido = { pts: number; resultadoOk: boolean; exactoOk: boolean };
+
+// Puntos de UN partido de grupos: +1 acertar 1/X/2, +3 marcador exacto (se suman).
+export function puntosPartidoGrupos(
+  predResultado: ResultadoPartido | undefined,
+  predGoles: Goles | undefined,
+  realResultado: ResultadoPartido | undefined,
+  realMarcador: string | undefined,
+): PuntosPartido {
+  if (!realResultado) return { pts: 0, resultadoOk: false, exactoOk: false };
+  const resultadoOk = !!predResultado && predResultado === realResultado;
+  const realG = parseMarcador(realMarcador);
+  const exactoOk =
+    !!realG &&
+    golesCompletos(predGoles) &&
+    predGoles.l === realG.l &&
+    predGoles.v === realG.v;
+  return {
+    pts: (resultadoOk ? 1 : 0) + (exactoOk ? 3 : 0),
+    resultadoOk,
+    exactoOk,
+  };
+}
+
 export type DetalleAciertos = {
-  partidos: number; // aciertos en resultados de fase de grupos
+  partidos: number; // puntos de fase de grupos (+1 resultado, +3 marcador exacto)
   octavos: number;
   cuartos: number;
   semis: number;
@@ -149,11 +193,17 @@ export type DetalleAciertos = {
 export function calcularAciertos(
   pred: Prediccion,
   oficial: Prediccion,
+  marcadores: Marcadores = {},
 ): DetalleAciertos {
-  // Fase de grupos: cada partido con mismo resultado = 1 punto
+  // Fase de grupos: +1 por resultado 1/X/2 acertado, +3 por marcador exacto.
   let partidos = 0;
   for (const [id, r] of Object.entries(oficial.grupos)) {
-    if (r && pred.grupos[id] === r) partidos++;
+    partidos += puntosPartidoGrupos(
+      pred.grupos[id],
+      pred.gruposGoles[id],
+      r,
+      marcadores[id],
+    ).pts;
   }
 
   const inter = (a: string[] = [], b: string[] = []) => {
@@ -180,6 +230,7 @@ export function calcularAciertos(
 
 export const PREDICCION_VACIA: Prediccion = {
   grupos: {},
+  gruposGoles: {},
   gruposCerrados: [],
   terceros: [],
   eliminatorias: {},
