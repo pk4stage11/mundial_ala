@@ -127,7 +127,13 @@ function FilaUsuario({
           <span className="font-semibold">{MEDALLA[pos] ?? pos + 1}</span>
         </td>
         <td className="px-4 py-3 font-medium">
-          <span className="text-grass mr-1">{open ? "▾" : "▸"}</span>
+          <span
+            className={`inline-flex items-center justify-center w-6 h-6 rounded-full mr-2 text-sm font-bold align-middle transition ${
+              open ? "bg-grass text-white" : "bg-grass/15 text-grass"
+            }`}
+          >
+            {open ? "▾" : "▸"}
+          </span>
           {r.usuario.username}
           {soyYo && <span className="ml-1 text-xs text-grass">(tú)</span>}
         </td>
