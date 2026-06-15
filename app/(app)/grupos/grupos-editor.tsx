@@ -242,8 +242,8 @@ export function GruposEditor({
                       </div>
 
                       {/* Fila 3: estado + resultado real + puntos */}
-                      <div className="flex items-center justify-between mt-1 text-[11px] gap-2">
-                        <span className="text-muted flex items-center gap-1 min-w-0 truncate">
+                      <div className="flex items-center justify-between mt-1.5 gap-2">
+                        <span className="text-[11px] text-muted flex items-center gap-1 min-w-0 truncate">
                           {cerrada ? (
                             <span className="text-orange-600 font-medium">
                               ✓ cerrada
@@ -255,8 +255,14 @@ export function GruposEditor({
                           )}
                         </span>
                         {rReal && (
-                          <span className="flex items-center gap-1.5 shrink-0">
-                            <span className="text-ink font-medium">
+                          <span
+                            className={`flex items-center gap-2 shrink-0 rounded-md px-2 py-1 text-sm font-bold ${
+                              pts.pts > 0
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            <span>
                               Real:{" "}
                               {marc ??
                                 (rReal === "LOCAL"
@@ -265,17 +271,7 @@ export function GruposEditor({
                                     ? "gana visita"
                                     : "empate")}
                             </span>
-                            <span
-                              className={`font-bold rounded px-1 ${
-                                pts.pts >= 3
-                                  ? "bg-green-100 text-win"
-                                  : pts.pts === 1
-                                    ? "bg-amber-100 text-amber-700"
-                                    : "bg-slate-100 text-muted"
-                              }`}
-                            >
-                              {pts.pts > 0 ? `+${pts.pts}` : "0"}
-                            </span>
+                            <span>{pts.pts > 0 ? `+${pts.pts}` : "0"}</span>
                           </span>
                         )}
                       </div>
