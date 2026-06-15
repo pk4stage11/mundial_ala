@@ -11,6 +11,7 @@ import { FIXTURES, kickoffMs } from "@/lib/fixtures";
 import {
   tablaGrupo,
   puntosPartidoGrupos,
+  golesCompletos,
   type GruposData,
   type GolesData,
 } from "@/lib/standings";
@@ -95,9 +96,24 @@ export function GruposEditor({
   }
 
   function cerrarApuesta(matchId: string) {
-    const g = goles[matchId];
-    const tieneAlgo = !!grupos[matchId] || (g && (g.l !== null || g.v !== null));
-    if (!tieneAlgo || cerrados.includes(matchId) || jugado(matchId)) return;
+    if (cerrados.includes(matchId) || jugado(matchId)) return;
+    const tieneResultado = !!grupos[matchId];
+    const tieneScore = golesCompletos(goles[matchId]);
+
+    if (!tieneResultado && !tieneScore) {
+      alert(
+        "Antes de cerrar la apuesta marca el MARCADOR (goles) y el RESULTADO (1/X/2).",
+      );
+      return;
+    }
+    if (!tieneScore) {
+      alert("Te falta completar el MARCADOR (los goles) para cerrar la apuesta.");
+      return;
+    }
+    if (!tieneResultado) {
+      alert("Te falta marcar el RESULTADO (1/X/2) para cerrar la apuesta.");
+      return;
+    }
     if (!confirm("¿Cerrar esta apuesta? Una vez cerrada NO podrás cambiarla."))
       return;
     const next = [...cerrados, matchId];
