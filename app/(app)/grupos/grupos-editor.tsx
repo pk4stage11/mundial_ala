@@ -137,12 +137,21 @@ export function GruposEditor({
                   const lock = bloqueado(p.id);
                   const pts = puntosPartidoGrupos(r, gl, rReal, marc);
                   return (
-                    <div key={p.id} className="px-2.5 py-2">
+                    <div
+                      key={p.id}
+                      className={`px-2.5 py-2 ${
+                        rReal
+                          ? pts.pts > 0
+                            ? "bg-green-100"
+                            : "bg-red-100"
+                          : ""
+                      }`}
+                    >
                       {/* Fila 1: equipos + marcador (goles) + check */}
                       <div className="flex items-center gap-1.5">
                         <span
                           className={`flex-1 min-w-0 truncate text-right text-[13px] sm:text-sm ${
-                            r === "LOCAL" ? "font-bold text-win" : ""
+                            r === "LOCAL" ? "font-bold text-slate-700" : ""
                           }`}
                         >
                           {equipo(p.local)?.name}{" "}
@@ -183,7 +192,7 @@ export function GruposEditor({
 
                         <span
                           className={`flex-1 min-w-0 truncate text-left text-[13px] sm:text-sm ${
-                            r === "VISITANTE" ? "font-bold text-win" : ""
+                            r === "VISITANTE" ? "font-bold text-slate-700" : ""
                           }`}
                         >
                           <span className="text-base">
@@ -230,9 +239,7 @@ export function GruposEditor({
                             onClick={() => setResultado(p.id, val)}
                             className={`w-9 h-7 rounded-md text-sm font-bold transition ${
                               r === val
-                                ? val === "EMPATE"
-                                  ? "bg-draw text-white"
-                                  : "bg-win text-white"
+                                ? "bg-slate-600 text-white"
                                 : "bg-slate-100 text-muted hover:bg-slate-200"
                             } ${lock ? "opacity-50 cursor-not-allowed" : ""}`}
                           >
@@ -258,8 +265,8 @@ export function GruposEditor({
                           <span
                             className={`flex items-center gap-2 shrink-0 rounded-md px-2 py-1 text-sm font-bold ${
                               pts.pts > 0
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-700"
+                                ? "bg-green-600 text-white"
+                                : "bg-red-600 text-white"
                             }`}
                           >
                             <span>

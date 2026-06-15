@@ -20,12 +20,33 @@ export default async function TablaPage() {
     cantidadPartidosResueltos(oficial.grupos) > 0 ||
     Object.keys(oficial.eliminatorias).length > 0;
 
+  const TOTAL_GRUPOS = 72;
+  const TOTAL_ELIM = 31; // 16 + 8 + 4 + 2 + 1 llaves de eliminatorias
+
   const ranking = todas
-    .map((p) => ({
-      usuario: p.usuario,
-      aciertos: calcularAciertos(p.prediccion, oficial, marcadores),
-    }))
-    .sort((a, b) => b.aciertos.total - a.aciertos.total);
+    .map((p) => {
+      const a = calcularAciertos(p.prediccion, oficial, marcadores);
+      const e = p.prediccion.eliminatorias;
+      const marcadosGrupos = Object.values(p.prediccion.grupos).filter(
+        Boolean,
+      ).length;
+      const marcadosElim =
+        (e.pasanOctavos?.length ?? 0) +
+        (e.pasanCuartos?.length ?? 0) +
+        (e.pasanSemis?.length ?? 0) +
+        (e.pasanFinal?.length ?? 0) +
+        (e.campeon?.length ?? 0);
+      const ptsElim = a.octavos + a.cuartos + a.semis + a.final + a.campeon;
+      return {
+        usuario: p.usuario,
+        total: a.total,
+        ptsGrupos: a.partidos,
+        ptsElim,
+        marcadosGrupos,
+        marcadosElim,
+      };
+    })
+    .sort((a, b) => b.total - a.total);
 
   const medalla = ["🥇", "🥈", "🥉"];
 
@@ -42,42 +63,32 @@ export default async function TablaPage() {
       {!hayResultados && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 text-sm text-blue-900">
           Todavía no se han cargado resultados oficiales, así que todos van con 0
-          aciertos. El administrador los carga en la pestaña{" "}
-          <b>Resultados (admin)</b> a medida que se juegan los partidos.
+          puntos. Se irán sumando a medida que se jueguen los partidos.
         </div>
       )}
 
       <div className="bg-surface rounded-xl border border-line shadow-sm overflow-x-auto">
-        <table className="w-full text-sm min-w-[640px]">
+        <table className="w-full text-sm min-w-[520px]">
           <thead className="bg-slate-50 text-muted">
             <tr>
               <th className="text-left px-4 py-3 font-medium w-12">#</th>
               <th className="text-left px-4 py-3 font-medium">Participante</th>
-              <th className="px-3 py-3 font-medium" title="Resultados de fase de grupos">
+              <th className="px-3 py-3 font-medium" title="Partidos marcados de la fase de grupos">
                 Grupos
               </th>
-              <th className="px-3 py-3 font-medium">8vos</th>
-              <th className="px-3 py-3 font-medium">4tos</th>
-              <th className="px-3 py-3 font-medium">Semis</th>
-              <th className="px-3 py-3 font-medium">Final</th>
-              <th className="px-3 py-3 font-medium" title="Campeón">
-                🏆
+              <th className="px-3 py-3 font-medium" title="Llaves marcadas de eliminatorias">
+                Eliminatorias
               </th>
-              <th className="px-4 py-3 font-bold text-right">Total</th>
+              <th className="px-4 py-3 font-bold text-right">Total pts</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
             {ranking.map((r, i) => {
               const soyYo = yo?.id === r.usuario.id;
               return (
-                <tr
-                  key={r.usuario.id}
-                  className={soyYo ? "bg-green-50" : ""}
-                >
+                <tr key={r.usuario.id} className={soyYo ? "bg-green-50" : ""}>
                   <td className="px-4 py-3">
-                    <span className="font-semibold">
-                      {medalla[i] ?? i + 1}
-                    </span>
+                    <span className="font-semibold">{medalla[i] ?? i + 1}</span>
                   </td>
                   <td className="px-4 py-3 font-medium">
                     {r.usuario.username}
@@ -85,33 +96,27 @@ export default async function TablaPage() {
                       <span className="ml-1 text-xs text-grass">(tú)</span>
                     )}
                   </td>
-                  <td className="px-3 py-3 text-center text-muted">
-                    {r.aciertos.partidos}
+                  <td className="px-3 py-3 text-center">
+                    <div className="font-semibold text-ink">
+                      {r.marcadosGrupos}/{TOTAL_GRUPOS}
+                    </div>
+                    <div className="text-xs text-grass">{r.ptsGrupos} pts</div>
                   </td>
-                  <td className="px-3 py-3 text-center text-muted">
-                    {r.aciertos.octavos}
+                  <td className="px-3 py-3 text-center">
+                    <div className="font-semibold text-ink">
+                      {r.marcadosElim}/{TOTAL_ELIM}
+                    </div>
+                    <div className="text-xs text-grass">{r.ptsElim} pts</div>
                   </td>
-                  <td className="px-3 py-3 text-center text-muted">
-                    {r.aciertos.cuartos}
-                  </td>
-                  <td className="px-3 py-3 text-center text-muted">
-                    {r.aciertos.semis}
-                  </td>
-                  <td className="px-3 py-3 text-center text-muted">
-                    {r.aciertos.final}
-                  </td>
-                  <td className="px-3 py-3 text-center text-muted">
-                    {r.aciertos.campeon}
-                  </td>
-                  <td className="px-4 py-3 text-right font-bold text-pitch text-base">
-                    {r.aciertos.total}
+                  <td className="px-4 py-3 text-right font-bold text-pitch text-lg">
+                    {r.total}
                   </td>
                 </tr>
               );
             })}
             {ranking.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-muted">
+                <td colSpan={5} className="px-4 py-8 text-center text-muted">
                   Aún no hay participantes registrados.
                 </td>
               </tr>
